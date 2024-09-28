@@ -2,94 +2,87 @@ import streamlit as st
 import os
 import time
 import glob
-import os
 from gtts import gTTS
 from PIL import Image
 import base64
 
+# Page title and image display
+st.set_page_config(page_title="Conversión de Texto a Audio", layout="centered")
 st.title("Conversión de Texto a Audio")
+
+# Display the image
 image = Image.open('gato_raton.png')
-st.image(image, width=350)
+st.image(image, caption="Kafka's Tale", use_column_width=True)
+
+# Sidebar setup
 with st.sidebar:
-    st.subheader("Esrcibe y/o selecciona texto para ser escuchado.")
+    st.header("Configuración")
+    st.info("Escribe o selecciona el texto que deseas convertir en audio.", icon="🔊")
 
-
-try:
+# Create 'temp' directory if not exists
+if not os.path.exists("temp"):
     os.mkdir("temp")
-except:
-    pass
 
-st.subheader("Una pequeña Fábula.")
-st.write('¡Ay! -dijo el ratón-. El mundo se hace cada día más pequeño. Al principio era tan grande que le tenía miedo. '  
-         ' Corría y corría y por cierto que me alegraba ver esos muros, a diestra y siniestra, en la distancia. ' 
-         ' Pero esas paredes se estrechan tan rápido que me encuentro en el último cuarto y ahí en el rincón está '  
-         ' la trampa sobre la cual debo pasar. Todo lo que debes hacer es cambiar de rumbo dijo el gato...y se lo comió. ' 
-         '  '
-         ' Franz Kafka.'
+# Display a brief fable with styling
+st.subheader("Una pequeña Fábula")
+st.markdown(
+    """
+    <div style="background-color:#f9f9f9; padding: 10px; border-radius: 10px;">
+    ¡Ay! -dijo el ratón-. El mundo se hace cada día más pequeño. Al principio era tan grande que le tenía miedo.
+    Corría y corría y por cierto que me alegraba ver esos muros, a diestra y siniestra, en la distancia.
+    Pero esas paredes se estrechan tan rápido que me encuentro en el último cuarto y ahí en el rincón está
+    la trampa sobre la cual debo pasar. Todo lo que debes hacer es cambiar de rumbo dijo el gato... y se lo comió.
+    <br><br><strong>Franz Kafka.</strong>
+    </div>
+    """, unsafe_allow_html=True
+)
+
+# Text input area
+st.markdown("## ¿Te gustaría escucharlo? Copia el texto a continuación:")
+text = st.text_area("Ingrese el texto que desea convertir a audio", height=200)
+
+# Language selection dropdown
+option_lang = st.selectbox("Selecciona el idioma del audio:", ("Español", "English"))
+lg = 'es' if option_lang == "Español" else 'en'
+
+# Text-to-speech function
+def text_to_speech(text, lg):
+    tts = gTTS(text, lang=lg)
+    my_file_name = text[:20] if text else "audio"
+    file_path = f"temp/{my_file_name}.mp3"
+    tts.save(file_path)
+    return file_path, text
+
+# Convert text to audio button
+if st.button("Convertir a Audio"):
+    if text.strip():
+        audio_path, output_text = text_to_speech(text, lg)
+        audio_file = open(audio_path, "rb")
+        audio_bytes = audio_file.read()
         
-        )
-           
-st.markdown(f"Quieres escucharlo?, copia el texto")
-text = st.text_area("Ingrese El texto a escuchar.")
+        st.markdown("## Tu Audio:")
+        st.audio(audio_bytes, format="audio/mp3")
 
-tld='com'
-option_lang = st.selectbox(
-    "Selecciona el lenguaje",
-    ("Español", "English"))
-if option_lang=="Español" :
-    lg='es'
-if option_lang=="English" :
-    lg='en'
+        # Audio download link
+        with open(audio_path, "rb") as f:
+            data = f.read()
+            def get_binary_file_downloader_html(bin_file, file_label='File'):
+                bin_str = base64.b64encode(data).decode()
+                href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">Descargar {file_label}</a>'
+                return href
+            st.markdown(get_binary_file_downloader_html(audio_path, "Archivo de Audio"), unsafe_allow_html=True)
+    else:
+        st.warning("Por favor, ingrese un texto para convertir a audio.")
 
-def text_to_speech(text, tld,lg):
-    
-    tts = gTTS(text,lang=lg) # tts = gTTS(text,'en', tld, slow=False)
-    try:
-        my_file_name = text[0:20]
-    except:
-        my_file_name = "audio"
-    tts.save(f"temp/{my_file_name}.mp3")
-    return my_file_name, text
+# Cleanup old files
+def remove_old_files(days=1):
+    mp3_files = glob.glob("temp/*.mp3")
+    now = time.time()
+    threshold = days * 86400  # Convert days to seconds
+    for f in mp3_files:
+        if os.stat(f).st_mtime < now - threshold:
+            os.remove(f)
 
+# Remove files older than one day
+remove_old_files(1)
 
-#display_output_text = st.checkbox("Verifica el texto")
-
-if st.button("convertir a Audio"):
-     result, output_text = text_to_speech(text, 'com',lg)#'tld
-     audio_file = open(f"temp/{result}.mp3", "rb")
-     audio_bytes = audio_file.read()
-     st.markdown(f"## Tú audio:")
-     st.audio(audio_bytes, format="audio/mp3", start_time=0)
-
-     #if display_output_text:
-     
-     #st.write(f" {output_text}")
-    
-#if st.button("ElevenLAabs",key=2):
-#     from elevenlabs import play
-#     from elevenlabs.client import ElevenLabs
-#     client = ElevenLabs(api_key="a71bb432d643bbf80986c0cf0970d91a", # Defaults to ELEVEN_API_KEY)
-#     audio = client.generate(text=f" {output_text}",voice="Rachel",model="eleven_multilingual_v1")
-#     audio_file = open(f"temp/{audio}.mp3", "rb")
-
-     with open(f"temp/{result}.mp3", "rb") as f:
-         data = f.read()
-
-     def get_binary_file_downloader_html(bin_file, file_label='File'):
-        bin_str = base64.b64encode(data).decode()
-        href = f'<a href="data:application/octet-stream;base64,{bin_str}" download="{os.path.basename(bin_file)}">Download {file_label}</a>'
-        return href
-     st.markdown(get_binary_file_downloader_html("audio.mp3", file_label="Audio File"), unsafe_allow_html=True)
-
-def remove_files(n):
-    mp3_files = glob.glob("temp/*mp3")
-    if len(mp3_files) != 0:
-        now = time.time()
-        n_days = n * 86400
-        for f in mp3_files:
-            if os.stat(f).st_mtime < now - n_days:
-                os.remove(f)
-                print("Deleted ", f)
-
-
-remove_files(7)

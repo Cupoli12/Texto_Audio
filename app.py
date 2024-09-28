@@ -27,7 +27,7 @@ if not os.path.exists("temp"):
 st.subheader("Una pequeña Fábula")
 st.markdown(
     """
-    <div style="background-color:#f9f9f9; padding: 10px; border-radius: 10px;">
+    <div style="background-color:#f44336; padding: 10px; border-radius: 10px;">
     ¡Ay! -dijo el ratón-. El mundo se hace cada día más pequeño. Al principio era tan grande que le tenía miedo.
     Corría y corría y por cierto que me alegraba ver esos muros, a diestra y siniestra, en la distancia.
     Pero esas paredes se estrechan tan rápido que me encuentro en el último cuarto y ahí en el rincón está
